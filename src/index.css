@@ -1,0 +1,221 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    color-scheme: dark;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    scroll-padding-top: 84px;
+    overscroll-behavior-y: none;
+    height: auto;
+  }
+  
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 100vh;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    background-color: #080D18;
+    color: #FFFFFF;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    letter-spacing: -0.011em;
+    font-weight: 400;
+  }
+
+  /* Sora Headings with controlled letter spacing */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sora', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.02em;
+  }
+  
+  /* Custom dark scrollbar with electric blue thumb */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #080D18;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #1b2c46;
+    border-radius: 4px;
+    border: 1px solid rgba(22, 119, 255, 0.25);
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #1677FF;
+  }
+}
+
+/* Subtle Film Grain Overlay */
+.film-grain {
+  position: relative;
+}
+.film-grain::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  z-index: 40;
+}
+
+/* Cinematic blue glows & gradients */
+.glow-blue {
+  box-shadow: 0 0 40px -10px rgba(22, 119, 255, 0.45);
+}
+
+.glow-blue-lg {
+  box-shadow: 0 0 80px -15px rgba(22, 119, 255, 0.35);
+}
+
+.text-gradient-blue {
+  background: linear-gradient(135deg, #ffffff 35%, #1677FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-silver {
+  background: linear-gradient(180deg, #ffffff 0%, #AAB6C8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Cine frame border with translucent dark card background */
+.cine-card {
+  background: rgba(18, 28, 45, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.28s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.cine-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(22, 119, 255, 0.55);
+  box-shadow: 0 12px 36px -12px rgba(22, 119, 255, 0.32);
+}
+
+/* Smooth Section Reveal Animations */
+.section-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), 
+              transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.section-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Timecode font style */
+.font-timecode {
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.08em;
+}
+
+/* Pulse animation for Live Blue dot */
+@keyframes rec-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+.animate-rec {
+  animation: rec-blink 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Cinematic Ambient Floating Light Keyframes */
+@keyframes cinematic-drift-1 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.16;
+  }
+  35% {
+    transform: translate3d(6vw, 5vh, 0) scale(1.12);
+    opacity: 0.24;
+  }
+  70% {
+    transform: translate3d(-4vw, 8vh, 0) scale(0.96);
+    opacity: 0.18;
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.16;
+  }
+}
+
+@keyframes cinematic-drift-2 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.14;
+  }
+  50% {
+    transform: translate3d(-7vw, -6vh, 0) scale(1.14);
+    opacity: 0.22;
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.14;
+  }
+}
+
+@keyframes cinematic-beam {
+  0% {
+    top: 15vh;
+    opacity: 0.06;
+    transform: translate3d(-50%, 0, 0) rotate(-1.5deg);
+  }
+  50% {
+    top: 55vh;
+    opacity: 0.18;
+    transform: translate3d(-50%, 0, 0) rotate(1deg);
+  }
+  100% {
+    top: 90vh;
+    opacity: 0.06;
+    transform: translate3d(-50%, 0, 0) rotate(-1.5deg);
+  }
+}
+
+.animate-cinematic-drift-1 {
+  animation: cinematic-drift-1 28s cubic-bezier(0.42, 0, 0.58, 1) infinite;
+  will-change: transform, opacity;
+}
+
+.animate-cinematic-drift-2 {
+  animation: cinematic-drift-2 34s cubic-bezier(0.42, 0, 0.58, 1) infinite;
+  will-change: transform, opacity;
+}
+
+.animate-cinematic-beam {
+  animation: cinematic-beam 24s ease-in-out infinite alternate;
+  will-change: top, opacity, transform;
+}
+
+/* Accessibility: Respect Reduced Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .section-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
