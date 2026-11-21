@@ -9,7 +9,6 @@ export default function Navbar({ onOpenContact, onWatchReel }) {
 
   const navLinks = [
     { name: 'Short Film', href: '#featured-film' },
-    { name: 'Showreel', href: '#showreel' },
     { name: 'Works', href: '#works' },
     { name: 'Color Science', href: '#color-grading' },
     { name: 'Services', href: '#services' },
@@ -24,7 +23,7 @@ export default function Navbar({ onOpenContact, onWatchReel }) {
     window.addEventListener('scroll', handleScroll, { passive: true });
 
     // Active Section IntersectionObserver for smooth tracking
-    const sectionIds = ['featured-film', 'showreel', 'works', 'color-grading', 'services', 'about', 'contact'];
+    const sectionIds = ['featured-film', 'works', 'color-grading', 'services', 'about', 'contact'];
     const observers = [];
 
     sectionIds.forEach((id) => {
