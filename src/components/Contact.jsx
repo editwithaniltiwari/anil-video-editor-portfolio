@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Mail, MessageSquare, Instagram, Send, CheckCircle2, Copy, Clock, Globe, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Mail, MessageSquare, Instagram, Send, CheckCircle2, Copy, Clock, Globe, HelpCircle, ChevronDown, ChevronUp, Loader2, AlertCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { editorProfile, faqs } from '../data/portfolioData';
 import { useInView } from '../hooks/useInView';
+import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
 export default function Contact({ preselectedService }) {
   const [sectionRef, isInView] = useInView();
@@ -39,6 +40,9 @@ export default function Contact({ preselectedService }) {
   });
 
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+  const [submittedSummary, setSubmittedSummary] = useState(null);
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
 
@@ -88,24 +92,97 @@ export default function Contact({ preselectedService }) {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.email) return;
-    if (isCustomBudget && !customAmount) return;
+    if (isSubmitting) return; // Prevent duplicate submissions
 
-    // Trigger celebratory blue-themed confetti
-    try {
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#1677FF', '#318BFF', '#FFFFFF', '#69b1ff']
-      });
-    } catch (err) {
-      console.log('Confetti error:', err);
+    // Client-side field validations
+    const trimmedName = formData.name.trim();
+    if (!trimmedName || trimmedName.length < 2) {
+      setSubmitError('Please enter your name or channel name (minimum 2 characters).');
+      return;
     }
 
-    setSubmitted(true);
+    const trimmedEmail = formData.email.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!trimmedEmail || !emailRegex.test(trimmedEmail)) {
+      setSubmitError('Please enter a valid email address so I can get back to you.');
+      return;
+    }
+
+    if (isCustomBudget && (!customAmount || parseInt(customAmount, 10) <= 0)) {
+      setSubmitError('Please enter a valid positive budget amount.');
+      return;
+    }
+
+    setSubmitError(null);
+    setIsSubmitting(true);
+
+    // Verify Supabase configuration exists
+    if (!isSupabaseConfigured || !supabase) {
+      setIsSubmitting(false);
+      setSubmitError(
+        'Supabase is not configured yet. Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in .env.local.'
+      );
+      return;
+    }
+
+    try {
+      const calculatedBudget = isCustomBudget
+        ? `${currency === 'INR' ? '₹' : '$'}${customAmount}`
+        : formData.budget;
+
+      // Exact mapping to public.project_inquiries columns
+      const inquiryPayload = {
+        client_name: trimmedName,
+        email: trimmedEmail.toLowerCase(),
+        service: formData.projectType,
+        turnaround: formData.timeline,
+        budget: calculatedBudget,
+        currency: currency,
+        project_details: formData.message.trim() || null,
+      };
+
+      const { data, error } = await supabase
+        .from('project_inquiries')
+        .insert([inquiryPayload]);
+
+      if (error) {
+        throw error;
+      }
+
+      setSubmittedSummary({
+        name: trimmedName,
+        email: trimmedEmail,
+        service: formData.projectType,
+        budget: calculatedBudget,
+      });
+
+      // Trigger celebratory blue-themed confetti
+      try {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#1677FF', '#318BFF', '#FFFFFF', '#69b1ff']
+        });
+      } catch (confettiErr) {
+        console.log('Confetti error:', confettiErr);
+      }
+
+      setSubmitted(true);
+    } catch (err) {
+      console.error('Supabase submission error:', err);
+      let errorMsg = err.message || 'Failed to submit inquiry to database. Please try again.';
+      if (err.code === '42501' || err.message?.includes('permission denied')) {
+        errorMsg = 'Database permission denied: anonymous users cannot insert into public.project_inquiries. Please enable public INSERT policy in Supabase SQL editor.';
+      } else if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError') || err.message?.includes('fetch failed')) {
+        errorMsg = 'Network connection to Supabase failed. Please check your internet connection or secure DNS settings.';
+      }
+      setSubmitError(errorMsg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const copyEmailToClipboard = () => {
@@ -291,14 +368,17 @@ export default function Contact({ preselectedService }) {
                     <CheckCircle2 className="w-8 h-8" />
                   </div>
                   <h3 className="font-heading font-semibold text-2xl text-white tracking-tight">
-                    Inquiry Received, {formData.name}!
+                    Inquiry Received, {submittedSummary?.name || formData.name}!
                   </h3>
                   <p className="font-manrope font-medium text-sm sm:text-base text-[#F5F8FF] max-w-md mx-auto leading-[1.75]">
-                    Thank you for reaching out. I have received your project details for <span className="text-electric-blue font-semibold">{formData.projectType}</span> ({formData.budget}). I will review your requirements and respond back via email at <a href="mailto:editwithaniltiwari@gmail.com" className="text-electric-light hover:text-white font-mono underline decoration-electric-blue/50 transition-colors">editwithaniltiwari@gmail.com</a> within 12 hours.
+                    Thank you for reaching out. Your inquiry has been saved to the database. I have received your project details for <span className="text-electric-blue font-semibold">{submittedSummary?.service || formData.projectType}</span> ({submittedSummary?.budget || formData.budget}). I will review your requirements and respond back via email at <a href="mailto:editwithaniltiwari@gmail.com" className="text-electric-light hover:text-white font-mono underline decoration-electric-blue/50 transition-colors">editwithaniltiwari@gmail.com</a> within 12 hours.
                   </p>
                   <button
                     onClick={() => {
                       setSubmitted(false);
+                      setSubmittedSummary(null);
+                      setSubmitError(null);
+                      setIsSubmitting(false);
                       setCurrency('INR');
                       setIsCustomBudget(false);
                       setCustomAmount('');
@@ -312,7 +392,7 @@ export default function Contact({ preselectedService }) {
                         message: ''
                       });
                     }}
-                    className="mt-4 px-6 py-2.5 rounded-lg bg-navy-800 hover:bg-navy-750 font-sans text-xs font-semibold text-slate-secondary border border-white/10"
+                    className="mt-4 px-6 py-2.5 rounded-lg bg-navy-800 hover:bg-navy-750 font-sans text-xs font-semibold text-slate-secondary border border-white/10 transition-colors"
                   >
                     Submit Another Inquiry
                   </button>
@@ -410,11 +490,10 @@ export default function Contact({ preselectedService }) {
                           <button
                             type="button"
                             onClick={() => handleCurrencyChange('INR')}
-                            className={`px-2.5 py-1 rounded-md font-sans text-[11px] font-semibold transition-all ${
-                              currency === 'INR'
-                                ? 'bg-electric-blue text-white shadow-sm'
-                                : 'text-slate-muted hover:text-slate-secondary'
-                            }`}
+                            className={`px-2.5 py-1 rounded-md font-sans text-[11px] font-semibold transition-all ${currency === 'INR'
+                              ? 'bg-electric-blue text-white shadow-sm'
+                              : 'text-slate-muted hover:text-slate-secondary'
+                              }`}
                             title="Indian Rupees"
                           >
                             INR (₹)
@@ -422,11 +501,10 @@ export default function Contact({ preselectedService }) {
                           <button
                             type="button"
                             onClick={() => handleCurrencyChange('USD')}
-                            className={`px-2.5 py-1 rounded-md font-sans text-[11px] font-semibold transition-all ${
-                              currency === 'USD'
-                                ? 'bg-electric-blue text-white shadow-sm'
-                                : 'text-slate-muted hover:text-slate-secondary'
-                            }`}
+                            className={`px-2.5 py-1 rounded-md font-sans text-[11px] font-semibold transition-all ${currency === 'USD'
+                              ? 'bg-electric-blue text-white shadow-sm'
+                              : 'text-slate-muted hover:text-slate-secondary'
+                              }`}
                             title="US Dollars"
                           >
                             USD ($)
@@ -483,13 +561,38 @@ export default function Contact({ preselectedService }) {
                     />
                   </div>
 
+                  {/* Error Alert Message */}
+                  {submitError && (
+                    <div className="p-4 rounded-xl bg-red-950/60 border border-red-500/40 text-red-200 flex items-start gap-3 text-xs sm:text-sm animate-in fade-in duration-200">
+                      <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <p className="font-semibold text-red-300 font-heading">Unable to Submit Inquiry</p>
+                        <p className="text-red-200/90 leading-relaxed font-manrope">{submitError}</p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Submit Button */}
                   <button
                     type="submit"
-                    className="w-full py-4 rounded-xl bg-electric-blue hover:bg-electric-hover text-white font-sans font-semibold text-sm sm:text-[15px] uppercase tracking-wider shadow-xl shadow-electric-blue/30 hover:shadow-electric-blue/50 transition-all flex items-center justify-center gap-2 active:scale-[0.99]"
+                    disabled={isSubmitting}
+                    className={`w-full py-4 rounded-xl font-sans font-semibold text-sm sm:text-[15px] uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                      isSubmitting
+                        ? 'bg-navy-800 text-slate-400 cursor-not-allowed border border-white/10 opacity-75'
+                        : 'bg-electric-blue hover:bg-electric-hover text-white shadow-xl shadow-electric-blue/30 hover:shadow-electric-blue/50 active:scale-[0.99]'
+                    }`}
                   >
-                    <Send className="w-4 h-4" />
-                    <span>Send Project Inquiry</span>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-electric-light" />
+                        <span>Submitting Inquiry...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        <span>Send Project Inquiry</span>
+                      </>
+                    )}
                   </button>
                 </form>
               )}
